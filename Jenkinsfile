@@ -2,19 +2,24 @@ pipeline {
     agent any
 
     stages {
-        stage('Build') {
+        stage('Checkout Code') {
             steps {
-                echo 'Building the application'
+                git 'https://github.com/nithyashree0910/jenkins_practise'
+            }
+        }
+        stage('Build'){
+            steps {
+               sh 'echo "Building the app"'
             }
         }
         stage('Test'){
             steps {
-                echo 'Running the tests'
+               sh 'echo "Running Tests"'
             }
         }
         stage('Deploy'){
             steps{
-                echo 'Deploying the application'
+                sh 'echo "Deploying the application"'
             }
         }
     }
