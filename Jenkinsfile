@@ -29,7 +29,7 @@ pipeline {
                         bat """
                         echo %DOCKER_PASS% |
                         docker login -u %DOCKER_USER% --password-stdin
-                        docker push %IMAGE_NAME%:latest
+                        docker push %DOCKER_IMAGE%:latest
                         docker logout
                         """
                     }
