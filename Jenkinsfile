@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-cred')
         DOCKER_IMAGE = "nithyashree0910/simple-website"
     }
 
@@ -17,26 +16,23 @@ pipeline {
             steps {
                 script {
                     // Tag with build number for versioning
-                    sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
+                    bat "docker build -t %DOCKER_IMAGE%:latest ."
                 }
             }
         }
 
-        stage('Login to DockerHub') {
-            steps {
-                script {
-                    sh "echo ${DOCKERHUB_CREDENTIALS_PSW} | docker login -u ${DOCKERHUB_CREDENTIALS_USR} --password-stdin"
-                }
-            }
-        }
 
         stage('Push to DockerHub') {
             steps {
                 script {
-                    // Push with build number & latest tag
-                    sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
-                    sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
-                    sh "docker push ${DOCKER_IMAGE}:latest"
+                    withCredentials([usernamePassword(credentialsId: 'docker', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]){
+                        bat """
+                        echo %DOCKER_PASS% |
+                        docker login -u %DOCKER_USER% --password-stdin
+                        docker push %IMAGE_NAME%:latest
+                        docker logout
+                        """
+                    }
                 }
             }
         }
