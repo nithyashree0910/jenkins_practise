@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = 'dockerhub'   // Jenkins credential ID
-        IMAGE_NAME = 'nithyashree0910/simple-app' // DockerHub repo name
+        DOCKERHUB_CREDENTIALS = 'dockerhub'        // Jenkins credential ID for DockerHub
+        IMAGE_NAME = 'nithyashree0910/simple-app'  // DockerHub repo name
     }
 
     stages {
@@ -24,7 +24,9 @@ pipeline {
         stage('Login to DockerHub & Push') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", 
+                                                      usernameVariable: 'DOCKER_USER', 
+                                                      passwordVariable: 'DOCKER_PASS')]) {
                         sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                         sh 'docker push $IMAGE_NAME:latest'
                     }
