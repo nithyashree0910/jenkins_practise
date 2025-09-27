@@ -16,7 +16,7 @@ pipeline {
             steps {
                 script {
                     // Tag with build number for versioning
-                    bat "docker build -t %DOCKER_IMAGE%:latest ."
+                    sh "docker build -t %DOCKER_IMAGE%:latest ."
                 }
             }
         }
@@ -26,7 +26,7 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'docker', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]){
-                        bat """
+                        sh """
                         echo %DOCKER_PASS% |
                         docker login -u %DOCKER_USER% --password-stdin
                         docker push %DOCKER_IMAGE%:latest
