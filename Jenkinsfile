@@ -4,9 +4,8 @@ pipeline {
     environment {
         AWS_REGION = 'ap-south-1'
         IMAGE_NAME = 'nithyashree0910/simple-ecr'
-        REPO_NAME  = 'test'
-        IMAGE_TAG  = 'latest'
-        ECR_URL    = '509399595231.dkr.ecr.ap-south-1.amazonaws.com'
+        IMAGE_TAG = 'latest'
+        REPO_URI = '509399595231.dkr.ecr.ap-south-1.amazonaws.com/test'
     }
 
     stages {
@@ -18,30 +17,28 @@ pipeline {
 
         stage('Login to ECR') {
             steps {
-                script {
-                    withAWS(region: "${env.AWS_REGION}", credentials: 'aws-creds') {
-                        powershell '''
-                        aws ecr get-login-password --region ${env:AWS_REGION} |
-                          docker login --username AWS --password-stdin ${env:ECR_URL}
-                        '''
-                    }
+                withAWS(credentials: 'aws_creds', region: "${env.AWS_REGION}") {
+                    sh '''
+                        aws ecr get-login-password --region ${AWS_REGION} | \
+                        docker login --username AWS --password-stdin ${REPO_URI}
+                    '''
                 }
             }
         }
 
         stage("Build Docker Image") {
             steps {
-                powershell '''
-                docker build -t ${env:IMAGE_NAME}:${env:IMAGE_TAG} .
-                docker tag ${env:IMAGE_NAME}:${env:IMAGE_TAG} ${env:ECR_URL}/${env:REPO_NAME}:${env:IMAGE_TAG}
+                sh '''
+                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                    docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${REPO_URI}:${IMAGE_TAG}
                 '''
             }
         }
 
         stage("Push to ECR") {
             steps {
-                powershell '''
-                docker push ${env:ECR_URL}/${env:REPO_NAME}:${env:IMAGE_TAG}
+                sh '''
+                    docker push ${REPO_URI}:${IMAGE_TAG}
                 '''
             }
         }
@@ -49,7 +46,7 @@ pipeline {
 
     post {
         success {
-            echo "🎉 Successfully built and pushed ${env.IMAGE_NAME}:${env.IMAGE_TAG} to ECR"
+            echo "🎉 Successfully built and pushed ${IMAGE_NAME}:${IMAGE_TAG} to ${REPO_URI}"
         }
         failure {
             echo "❌ Build or push failed. Check logs."
