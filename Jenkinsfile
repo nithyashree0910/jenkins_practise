@@ -4,7 +4,9 @@ pipeline {
     environment {
         AWS_REGION = 'ap-south-1'
         IMAGE_NAME = 'nithyashree0910/simple-ecr'
-        REPO_NAME = 'test'
+        REPO_NAME  = 'test'
+        IMAGE_TAG  = 'latest'
+        ECR_URL    = '509399595231.dkr.ecr.ap-south-1.amazonaws.com'
     }
 
     stages {
@@ -14,48 +16,40 @@ pipeline {
             }
         }
 
-        stage('Tag the image') {
+        stage('Login to ECR') {
             steps {
                 script {
-                    IMAGE_TAG = 'latest'
+                    withAWS(region: "${env.AWS_REGION}", credentials: 'aws_creds') {
+                        powershell '''
+                        aws ecr get-login-password --region ${env:AWS_REGION} |
+                          docker login --username AWS --password-stdin ${env:ECR_URL}
+                        '''
+                    }
                 }
             }
         }
 
-        stage('Login to ECR') {
+        stage("Build Docker Image") {
             steps {
-                script {
-                   withAWS(region: "${env.AWS_REGION}", credentials:'aws_creds') {
-                       powershell '''
-                       $ecrLogin = aws ecr get-login-password --region ${env.AWS_REGION}
+                powershell '''
+                docker build -t ${env:IMAGE_NAME}:${env:IMAGE_TAG} .
+                docker tag ${env:IMAGE_NAME}:${env:IMAGE_TAG} ${env:ECR_URL}/${env:REPO_NAME}:${env:IMAGE_TAG}
+                '''
+            }
+        }
 
-                       docker login --username AWS --password-stdin $ecrLogin https://509399595231.dkr.ecr.ap-south-1.amazonaws.com
-                       '''
-                   }
-                }
-            }
-            stage("Build docker image"){
-                steps{
-                    powershell '''
-                    docker build -t $env.IMAGE_NAME:${env.IMAGE_TAG} .
-                    docker tag $env.IMAGE_NAME:${env.IMAGE_TAG} 509399595231.dkr.ecr.ap-south-1.amazonaws.com/test:latest
-                    '''
-                }
-            }
-            stage("Push to ecr"){
-                steps{
-                    powershell '''
-                    docker push 509399595231.dkr.ecr.ap-south-1.amazonaws.com/test:latest
-                    '''
-                    
-                }
+        stage("Push to ECR") {
+            steps {
+                powershell '''
+                docker push ${env:ECR_URL}/${env:REPO_NAME}:${env:IMAGE_TAG}
+                '''
             }
         }
     }
 
     post {
         success {
-            echo "🎉 Successfully built and pushed $IMAGE_NAME:latest to DockerHub"
+            echo "🎉 Successfully built and pushed ${env.IMAGE_NAME}:${env.IMAGE_TAG} to ECR"
         }
         failure {
             echo "❌ Build or push failed. Check logs."
