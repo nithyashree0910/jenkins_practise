@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = 'dockerhub'        // Jenkins credential ID for DockerHub
-        IMAGE_NAME = 'nithyashree0910/simple-app'  // DockerHub repo name
+        AWS_REGION = 'ap-south-1'
+        IMAGE_NAME = 'nithyashree0910/simple-ecr'
+        REPO_NAME = 'test'
     }
 
     stages {
@@ -13,23 +14,40 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Tag the image') {
             steps {
                 script {
-                    sh 'docker build -t $IMAGE_NAME:latest .'
+                    IMAGE_TAG = 'latest'
                 }
             }
         }
 
-        stage('Login to DockerHub & Push') {
+        stage('Login to ECR') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", 
-                                                      usernameVariable: 'DOCKER_USER', 
-                                                      passwordVariable: 'DOCKER_PASS')]) {
-                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                        sh 'docker push $IMAGE_NAME:latest'
-                    }
+                   withAWS(region: "$(env.AWS_REGION)", credentials:'aws_creds') {
+                       powershell '''
+                       $ecrLogin = aws ecr get-login-password --region $env.AWS_REGION
+
+                       docker login --username AWS --password $ecrLogin https://509399595231.dkr.ecr.ap-south-1.amazonaws.com
+                       '''
+                   }
+                }
+            }
+            stage("Build docker image"){
+                steps{
+                    powershell '''
+                    docker build -t $env.IMAGE_NAME:$env.IMAGE_TAG .
+                    docker tag $env.IMAGE_NAME:$env.IMAGE_TAG 509399595231.dkr.ecr.ap-south-1.amazonaws.com/test:latest
+                    '''
+                }
+            }
+            stage("Push to ecr"){
+                steps{
+                    powershell '''
+                    docker push 509399595231.dkr.ecr.ap-south-1.amazonaws.com/test:latest
+                    '''
+                    
                 }
             }
         }
